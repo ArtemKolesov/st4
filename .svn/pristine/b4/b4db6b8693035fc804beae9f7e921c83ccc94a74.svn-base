@@ -1,0 +1,80 @@
+@CHARSET "UTF-8";
+
+body {
+	margin: 0px;
+}
+
+.header {
+	background-color: #4169E1;
+	height: 50px;
+	margin: 0px;
+}
+
+.header a {
+	text-decoration: none;
+	color: white;
+	font-size: 150%;
+}
+
+.link1 {
+	display: inline-block;
+	padding-top: 12px;
+	padding-left: 50px;
+}
+
+.link {
+	display: inline-block;
+	padding-top: 12px;
+	padding-left: 10px;
+}
+.locale {
+	display: inline-block;
+	padding-top: 12px;
+	padding-right: 50px;
+	float:right;
+}
+#login_form {
+	margin: 100px 5px 0px 585px;
+}
+
+.footer {
+	background-color: #4169E1;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 40px;
+	padding-top: 0px;
+	text-align: center;
+	color: white;
+	font-size: 190%;
+	font-family: Charcoal, sans-serif;
+}
+
+.foot4staff {
+	background-color: #4169E1;
+	position: relative;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 40px;
+	padding-top: 0px;
+	text-align: center;
+	color: white;
+	font-size: 190%;
+	font-family: Charcoal, sans-serif;
+}
+
+.flight_content a {
+	text-decoration: none;
+	color: black;
+}
+
+.hello {
+	margin: 150px;
+	text-align: center;
+}
+
+.center p {
+	text-align: center;
+}

@@ -1,0 +1,402 @@
+package ua.nure.kolesov.SummaryTask4.web.command.option;
+
+import java.io.IOException;
+import java.sql.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.Path;
+import ua.nure.kolesov.SummaryTask4.db.Airport;
+import ua.nure.kolesov.SummaryTask4.db.FlightStatus;
+import ua.nure.kolesov.SummaryTask4.db.bean.FlightBean;
+import ua.nure.kolesov.SummaryTask4.db.dao.CrewDAO;
+import ua.nure.kolesov.SummaryTask4.db.dao.FlightBeanDAO;
+import ua.nure.kolesov.SummaryTask4.db.dao.FlightDAO;
+import ua.nure.kolesov.SummaryTask4.db.entity.Crew;
+import ua.nure.kolesov.SummaryTask4.db.entity.Flight;
+import ua.nure.kolesov.SummaryTask4.exception.AppException;
+import ua.nure.kolesov.SummaryTask4.exception.Message;
+import ua.nure.kolesov.SummaryTask4.web.command.option.search.SearchFlight;
+import ua.nure.kolesov.SummaryTask4.web.command.option.sort.SortFlight;
+
+/**
+ * Stores options for flights.
+ *
+ */
+public final class FlightOption {
+	private FlightOption() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(FlightOption.class);
+	private static ResourceBundle rb = ResourceBundle.getBundle("resources");
+
+	/**
+	 * Find option by name.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @param option
+	 *            Option name
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	public static String optionFactory(HttpServletRequest request, String option)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		if (option == null) {
+			forward = showFlights(request);
+		} else if (option.equals("delete")) {
+			LOG.info("delete flight");
+			forward = delete(request);
+		} else if (option.equals("change_crew")) {
+			LOG.info("change crews");
+			forward = changeCrew(request);
+		} else if (option.equals("change_status")) {
+			LOG.info("change status");
+			forward = changeStatus(request);
+		} else if (option.equals("add")) {
+			LOG.info("add flight");
+			forward = add(request);
+		} else if (option.equals("update")) {
+			LOG.info("update flight");
+			forward = update(request);
+		} else if (option.equals("search")) {
+			LOG.info("search flight");
+			forward = search(request);
+		}
+		return forward;
+	}
+
+	/**
+	 * Search flights.
+	 * 
+	 * Invoke search method of SearchFlight.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String search(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String by = request.getParameter("by");
+		@SuppressWarnings("unchecked")
+		List<FlightBean> flights = (List<FlightBean>) request.getSession()
+				.getAttribute("found_flights");
+		LOG.debug("flights: " + flights);
+		request.setAttribute("flights", flights);
+		return SearchFlight.search(request, by);
+	}
+
+	/**
+	 * Find list of flights from the DB and send in to the view.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String showFlights(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		List<FlightBean> flightBeans = FlightBeanDAO.findFlightBeans();
+		LOG.debug("Found in DB: flightBeanList --> " + flightBeans);
+		String sort = request.getParameter("sort");
+		SortFlight.sort(flightBeans, sort);
+		String forward = Path.PAGE_FLIGHTS;
+
+		Map<String, Integer> airports = new TreeMap<String, Integer>();
+		for (Airport a : Airport.values()) {
+			airports.put(a.name(), a.getId());
+		}
+		request.setAttribute("airports", airports);
+		LOG.debug("airports --> " + airports);
+		Map<String, Integer> statuses = new TreeMap<String, Integer>();
+		for (FlightStatus fs : FlightStatus.values()) {
+			statuses.put(fs.name(), fs.getId());
+		}
+		request.setAttribute("statuses", statuses);
+		LOG.debug("statuses --> " + statuses);
+
+		request.setAttribute("flights", flightBeans);
+		LOG.debug("Set the request attribute: flights --> " + flightBeans);
+		return forward;
+	}
+
+	/**
+	 * Delete flight from the DB using FlightDAO method.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String delete(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		boolean flag = FlightDAO.delete(id);
+		if (flag) {
+			String redirect = Path.COMMAND_FLIGHTS;
+			request.setAttribute(Message.REDIRECT, redirect);
+			forward = Path.PAGE_REDIRECT;
+		} else {
+			LOG.warn("delete failed");
+			throw new AppException("delete failed");
+
+		}
+		return forward;
+	}
+
+	/**
+	 * Add flight into the DB using FlightDAO method.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String add(HttpServletRequest request) throws IOException,
+			ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		String name = request.getParameter("name");
+		if (!check(name)) {
+			LOG.warn("invalid name");
+			throw new AppException("invalid name");
+		}
+		Integer dep = Integer.valueOf(request.getParameter("dep_id"));
+		Integer arr = Integer.valueOf(request.getParameter("arr_id"));
+		if (dep.equals(arr)) {
+			LOG.warn("Departure and arrival cannot be the same");
+			throw new AppException(rb.getString("error.flight"));
+		}
+		Date date = null;
+		try {
+			date = Date.valueOf(request.getParameter("date"));
+		} catch (IllegalArgumentException e) {
+			LOG.error("flights not found", e);
+			throw new AppException(rb.getString("error.flight"), e);
+		}
+		String cid = request.getParameter("crew_id");
+		LOG.debug(cid.isEmpty());
+		Integer crewId = null;
+		if (!cid.isEmpty()) {
+			try {
+				crewId = Integer.valueOf(cid);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect crew_id found", e);
+				throw new AppException(
+						"incorrect crew_id found, enter correct value, please.",
+						e);
+			}
+		} else {
+			crewId = 0;
+		}
+		Integer statusId = Integer.valueOf(request.getParameter("stat_id"));
+		boolean flag = FlightDAO.create(id, name, dep, arr, date, crewId,
+				statusId);
+		LOG.debug("flag -->" + flag);
+		if (flag) {
+			String redirect = Path.COMMAND_FLIGHTS;
+			request.setAttribute(Message.REDIRECT, redirect);
+			forward = Path.PAGE_REDIRECT;
+		} else {
+			LOG.warn("create failed");
+			throw new AppException("create faled");
+
+		}
+		return forward;
+	}
+
+	/**
+	 * Check if flight name is like "XXX 00".
+	 * 
+	 * @param name
+	 *            Flight name
+	 * @return
+	 */
+	private static boolean check(String name) {
+		Pattern p = Pattern.compile("^[A-Z]{2}\\s\\d{3}$");
+		Matcher m = p.matcher(name);
+		return m.matches();
+	}
+
+	/**
+	 * Set crew on flight using FlightDAO method.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String changeCrew(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		Flight flight = FlightDAO.findById(id);
+		Integer crewId = null;
+		try {
+			crewId = Integer.valueOf(request.getParameter("crew_id"));
+		} catch (NumberFormatException e) {
+			LOG.error("incorrect crew id", e);
+			throw new AppException("enter correct crew id value, please.", e);
+		}
+		Crew crew = CrewDAO.findCrew(crewId);
+		for(Date d: crew.getFlightDates()) {
+			if(flight.getDate().equals(d)) {
+				throw new AppException("Crew is already busy this day");
+			}
+		}
+		FlightDAO.changeCrew(id, crewId);
+		String redirect = Path.COMMAND_FLIGHTS;
+		request.setAttribute(Message.REDIRECT, redirect);
+		forward = Path.PAGE_REDIRECT;
+		LOG.info("Crew changed");
+		return forward;
+	}
+
+	/**
+	 * Set status on flight using FlightDAO method.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String changeStatus(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		Integer statusId = Integer.valueOf(request.getParameter("stat_id"));
+		FlightDAO.changeStatus(id, statusId);
+		String redirect = Path.COMMAND_FLIGHTS;
+		request.setAttribute(Message.REDIRECT, redirect);
+		forward = Path.PAGE_REDIRECT;
+		LOG.info("Status changed");
+		return forward;
+	}
+
+	/**
+	 * Update the flight information.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String update(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Flight flight = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+
+		flight = FlightDAO.findById(id);
+
+		String name = request.getParameter("name");
+
+		if (!name.isEmpty()) {
+			if (!check(name)) {
+				throw new AppException("invalid name");
+			}
+			flight.setName(name);
+		}
+		Integer dep = Integer.valueOf(request.getParameter("dep_id"));
+		Integer arr = Integer.valueOf(request.getParameter("arr_id"));
+
+		if (dep.equals(arr)) {
+			LOG.warn("Departure and arrival cannot be the same");
+			throw new AppException(rb.getString("error.flight"));
+		}
+
+		flight.setDeparture(dep);
+		flight.setArrival(arr);
+		String tDate = request.getParameter("date");
+		Date date = null;
+		if (!tDate.isEmpty()) {
+			try {
+				date = Date.valueOf(request.getParameter("date"));
+				flight.setDate(date);
+			} catch (IllegalArgumentException e) {
+				LOG.error("flights not found", e);
+				throw new AppException("enter correct date, please.", e);
+			}
+		}
+		String cid = request.getParameter("crew_id");
+		Integer crewId = null;
+		if (!cid.isEmpty()) {
+			try {
+				crewId = Integer.valueOf(cid);
+				flight.setCrewId(crewId);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect crew_id found", e);
+				throw new AppException(
+						"incorrect crew_id found, enter correct value, please.",
+						e);
+			}
+		}
+
+		int statusId = Integer.valueOf(request.getParameter("stat_id"));
+		flight.setStatusId(statusId);
+		FlightDAO.update(flight);
+		String redirect = Path.COMMAND_FLIGHTS;
+		request.setAttribute("redirect", redirect);
+		forward = Path.PAGE_REDIRECT;
+
+		return forward;
+	}
+}

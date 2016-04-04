@@ -1,0 +1,274 @@
+package ua.nure.kolesov.SummaryTask4.db.dao;
+
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.db.DBManager;
+import ua.nure.kolesov.SummaryTask4.db.entity.Flight;
+import ua.nure.kolesov.SummaryTask4.exception.DBException;
+
+/**
+ * Stores CRUD methods for flight table in DB.
+ *
+ */
+public class FlightDAO {
+	private FlightDAO() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(FlightDAO.class);
+	private static final String SQL_CREATE_FLIGHT = "INSERT INTO `st4`.`flights` VALUES (?, ?, ?, ?, ?, ?, ?)";
+	private static final String SQL_DELETE_FLIGHT = "DELETE FROM `st4`.`flights` WHERE `id`=?";
+	private static final String SQL_UPDATE_FLIGHT = "UPDATE `st4`.`flights` SET `name`=?, `departure`=?, `arrival`=?, `date`=?, `crew_id`=?, `status_id`=? WHERE `id`=?";
+	private static final String SQL_FIND_FLIGHT_BY_ID = "SELECT * FROM flights WHERE id=?";
+	private static final String SQL_CHANGE_FLIGHT_STATUS = "UPDATE `st4`.`flights` SET `status_id`=? WHERE `id`=?";
+	private static final String SQL_CHANGE_CREW = "UPDATE `st4`.`flights` SET `crew_id`=? WHERE `id`=?";
+
+	/**
+	 * Create flight and put it into DB.
+	 * 
+	 * @param id
+	 *            Id of the created flight
+	 * @param name
+	 *            Name of the created flight
+	 * @param departure
+	 *            Id of the airport, flight departures from
+	 * @param arrival
+	 *            Id of the airport, flight arrives from
+	 * @param date
+	 *            Date of the departure of the created flight
+	 * @param crewId
+	 *            Id of the crew of the created flight
+	 * @param statusId
+	 *            Status id of the created flight
+	 * @return flag True, id the flight was created
+	 * @throws DBException
+	 */
+	public static boolean create(long id, String name, int departure,
+			int arrival, Date date, int crewId, int statusId)
+			throws DBException {
+		LOG.info("create started");
+		boolean flag = false;
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_CREATE_FLIGHT);
+			ps.setLong(1, id);
+			ps.setString(2, name);
+			ps.setInt(3, departure);
+			ps.setInt(4, arrival);
+			ps.setDate(5, date);
+			ps.setInt(6, crewId);
+			ps.setInt(7, statusId);
+			ps.executeUpdate();
+			cn.commit();
+			flag = true;
+			LOG.info("Flight created");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Cannot create flight", e);
+			throw new DBException("Cannot create flight", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+		return flag;
+	}
+
+	/**
+	 * Delete current flight.
+	 * 
+	 * @param id
+	 *            Flight id to delete
+	 * @return flag True, if flight was deleted
+	 * @throws DBException
+	 */
+	public static boolean delete(long id) throws DBException {
+		LOG.info("delete started");
+		boolean flag = false;
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_DELETE_FLIGHT);
+			ps.setLong(1, id);
+			ps.executeUpdate();
+			cn.commit();
+			flag = true;
+			LOG.info("Flight deleted");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Cannot delete flight", e);
+			throw new DBException("Cannot delete flight", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+
+		return flag;
+	}
+
+	/**
+	 * Update current flight.
+	 * 
+	 * @param flight
+	 *            Flight to update
+	 * @throws DBException
+	 */
+	public static void update(Flight flight) throws DBException {
+		LOG.info("update started");
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_UPDATE_FLIGHT);
+			ps.setString(1, flight.getName());
+			ps.setInt(2, flight.getDeparture());
+			ps.setInt(3, flight.getArrival());
+			ps.setDate(4, flight.getDate());
+			ps.setInt(5, flight.getCrewId());
+			ps.setInt(6, flight.getStatusId());
+			ps.setLong(7, flight.getId());
+			ps.executeUpdate();
+			cn.commit();
+			LOG.info("update finished");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Cannot update flight", e);
+			throw new DBException("Cannot update flight", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+	}
+
+	/**
+	 * Find flight by id.
+	 * 
+	 * @param id
+	 *            Id of the flight to find
+	 * @return flight Flight that was found
+	 * @throws DBException
+	 */
+	public static Flight findById(long id) throws DBException {
+		LOG.info("find by id started");
+		Flight flight = null;
+		PreparedStatement ps = null;
+		Connection cn = null;
+		ResultSet rs = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_FIND_FLIGHT_BY_ID);
+			ps.setLong(1, id);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				flight = extractFlight(rs);
+			}
+			cn.commit();
+			LOG.debug("find by id ended: " + flight);
+		} catch (SQLException ex) {
+			manager.rollback(cn);
+			LOG.error("Cannot obtain flight by id", ex);
+			throw new DBException("Cannot obtain flight by id", ex);
+		} finally {
+			manager.close(rs);
+			manager.close(ps);
+			manager.close(cn);
+		}
+		return flight;
+	}
+
+	/**
+	 * Extract flight from the DB.
+	 * 
+	 * @param rs
+	 *            ResultSet
+	 * @return flight Flight that was found
+	 * @throws SQLException
+	 */
+	public static Flight extractFlight(ResultSet rs) throws SQLException {
+		Flight flight = new Flight();
+		flight.setId(rs.getLong(1));
+		flight.setName(rs.getString(2));
+		flight.setDeparture(rs.getInt(3));
+		flight.setArrival(rs.getInt(4));
+		flight.setDate(rs.getDate(5));
+		flight.setCrewId(rs.getInt(6));
+		flight.setStatusId(rs.getInt(7));
+		return flight;
+	}
+
+	/**
+	 * Change status of the current flight.
+	 * 
+	 * @param id
+	 *            Id of the flight to change
+	 * @param statusId
+	 *            Status to change
+	 * @throws DBException
+	 */
+	public static void changeStatus(long id, int statusId) throws DBException {
+		LOG.info("change flight status started");
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_CHANGE_FLIGHT_STATUS);
+			ps.setInt(1, statusId);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+			cn.commit();
+			LOG.info("update finished");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Cannot update flight status", e);
+			throw new DBException("Cannot update flight status", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+	}
+
+	/**
+	 * Change crew for current flight.
+	 * 
+	 * @param id
+	 *            Id of the flight to change
+	 * @param crewId
+	 *            Status to change
+	 * @throws DBException
+	 */
+	public static void changeCrew(long id, int crewId) throws DBException {
+		LOG.info("change crew started");
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_CHANGE_CREW);
+			ps.setInt(1, crewId);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+			cn.commit();
+			LOG.info("update finished");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Cannot change crew", e);
+			throw new DBException("Cannot change crew", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+	}
+}

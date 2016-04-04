@@ -1,0 +1,32 @@
+package ua.nure.kolesov.SummaryTask4;
+
+import static org.junit.Assert.*;
+
+import java.sql.Date;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+public class FlightTest {
+	String name;
+	int departure;
+	int arrival;
+	Date date;
+	int crewId;
+	int statusId;
+
+	@Before
+	public void setUp() throws Exception {
+	}
+
+	@After
+	public void tearDown() throws Exception {
+	}
+
+	@Test
+	public final void test() {
+		fail("Not yet implemented"); // TODO
+	}
+
+}

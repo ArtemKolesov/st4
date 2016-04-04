@@ -1,0 +1,136 @@
+package ua.nure.kolesov.SummaryTask4.web.command.option;
+
+import java.io.IOException;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.Path;
+import ua.nure.kolesov.SummaryTask4.db.dao.CrewDAO;
+import ua.nure.kolesov.SummaryTask4.exception.AppException;
+
+/**
+ * Stores options for crews.
+ *
+ */
+public class CrewOption {
+
+	private CrewOption() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(CrewOption.class);
+
+	/**
+	 * Find option by name.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @param option
+	 *            Option name
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	public static String optionFactory(HttpServletRequest request, String option)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		if (option == null) {
+			forward = Path.PAGE_CREWS;
+			LOG.info("show crews");
+		} else if (option.equals("change_status")) {
+			forward = changeStatus(request);
+			LOG.info("change crew status");
+		} else if (option.equals("add")) {
+			forward = add(request);
+			LOG.info("add crew");
+		} else if (option.equals("delete")) {
+			forward = delete(request);
+			LOG.info("delete crew");
+		}
+		return forward;
+	}
+
+	/**
+	 * Change status of the crew.
+	 * 
+	 * @param request HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String changeStatus(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error("incorrect id", e);
+			throw new AppException("enter correct id value, please.", e);
+		}
+		Integer statusId = Integer.valueOf(request.getParameter("stat_id"));
+		CrewDAO.changeStatus(id, statusId);
+		String redirect = Path.COMMAND_CREWS;
+		request.setAttribute("redirect", redirect);
+		forward = Path.PAGE_REDIRECT;
+		LOG.debug("Status changed");
+		return forward;
+	}
+
+	/**
+	 * Add a new crew.
+	 * 
+	 * @param request HttpServletRequest
+	 * @return  path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String add(HttpServletRequest request) throws IOException,
+			ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error("incorrect id", e);
+			throw new AppException("enter correct id value, please.", e);
+		}
+		CrewDAO.create(id);
+		String redirect = Path.COMMAND_CREWS;
+		request.setAttribute("redirect", redirect);
+		forward = Path.PAGE_REDIRECT;
+		return forward;
+	}
+
+	/**
+	 * Delete crew.
+	 * 
+	 * @param request HttpServletRequest
+	 * @return  path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String delete(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error("incorrect id", e);
+			throw new AppException("enter correct id value, please.", e);
+		}
+		CrewDAO.delete(id);
+		String redirect = Path.COMMAND_CREWS;
+		request.setAttribute("redirect", redirect);
+		forward = Path.PAGE_REDIRECT;
+
+		return forward;
+	}
+}

@@ -1,0 +1,68 @@
+package ua.nure.kolesov.SummaryTask4.web.command.option.sort;
+
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.db.bean.FlightBean;
+
+public class SortFlight {
+
+	private SortFlight() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(SortFlight.class);
+
+	public static void sort(List<FlightBean> flights, String sort) {
+		if (sort == null || sort.equals("id")) {
+			Collections.sort(flights, compareById);
+			LOG.info("sort by id");
+		} else if (sort.equals("name")) {
+			Collections.sort(flights, compareByName);
+			LOG.info("sort by name");
+		} else if (sort.equals("date")) {
+			Collections.sort(flights, compareByDate);
+			LOG.info("sort by date");
+		}
+	}
+
+	private static class CompareById implements Comparator<FlightBean>,
+			Serializable {
+		private static final long serialVersionUID = -1573481565177573283L;
+
+		@Override
+		public int compare(FlightBean o1, FlightBean o2) {
+			return (int) (o1.getId() - o2.getId());
+		}
+	}
+
+	private static Comparator<FlightBean> compareById = new CompareById();
+
+	private static class CompareByName implements Comparator<FlightBean>,
+			Serializable {
+		private static final long serialVersionUID = -8197832649727545164L;
+
+		@Override
+		public int compare(FlightBean o1, FlightBean o2) {
+			return o1.getName().compareToIgnoreCase(o2.getName());
+		}
+	}
+
+	private static Comparator<FlightBean> compareByName = new CompareByName();
+
+	private static class CompareByDate implements Comparator<FlightBean>,
+			Serializable {
+		private static final long serialVersionUID = -8197832649727545164L;
+
+		@Override
+		public int compare(FlightBean o1, FlightBean o2) {
+			return o1.getDate().compareTo(o2.getDate());
+		}
+	}
+
+	private static Comparator<FlightBean> compareByDate = new CompareByDate();
+
+}

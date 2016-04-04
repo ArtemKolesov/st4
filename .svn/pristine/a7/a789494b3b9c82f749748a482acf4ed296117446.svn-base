@@ -1,0 +1,131 @@
+package ua.nure.kolesov.SummaryTask4.web.command.option.search;
+
+import java.io.IOException;
+import java.sql.Date;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ResourceBundle;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.Path;
+import ua.nure.kolesov.SummaryTask4.db.bean.FlightBean;
+import ua.nure.kolesov.SummaryTask4.db.dao.FlightBeanDAO;
+import ua.nure.kolesov.SummaryTask4.exception.AppException;
+import ua.nure.kolesov.SummaryTask4.exception.DBException;
+
+/**
+ * Search flight by id/parameters(departure, arrival, departure date).
+ *
+ */
+public class SearchFlight {
+	private SearchFlight() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(SearchFlight.class);
+	private static ResourceBundle rb = ResourceBundle.getBundle("resources");
+	public static String search(HttpServletRequest request, String by)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		if (by == null) {
+			forward = Path.PAGE_FLIGHT;
+		} else if (by.equals("id")) {
+			forward = byId(request);
+			LOG.info("search by id");
+		} else if (by.equals("params")) {
+			LOG.info("search by params");
+			forward = byParams(request);
+		}
+		return forward;
+	}
+
+	/**
+	 * Search flight by id.
+	 * 
+	 * Obtain flight from the DB using FlightDAO method.
+	 * 
+	 * @param request HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String byId(HttpServletRequest request) throws IOException,
+			ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		FlightBean flight = null;
+		List<FlightBean> flights = new ArrayList<FlightBean>();
+		try {
+			id = Long.valueOf(request.getParameter("search_id"));
+		} catch (NumberFormatException e) {
+			LOG.error("flight not found", e);
+			throw new AppException("enter correct value, please.", e);
+		}
+
+		if (id != null) {
+			try {
+				flight = FlightBeanDAO.findFlightBeanById(id);
+				flights.add(flight);
+				LOG.debug("found flights" + flights);
+				request.getSession().setAttribute("found_flights", flights);
+				String redirect = "controller?command=flights&option=search";
+				request.setAttribute("redirect", redirect);
+				forward = Path.PAGE_REDIRECT;
+			} catch (DBException e) {
+				forward = Path.PAGE_ERROR;
+				LOG.error("flight not found", e);
+				throw new AppException("Cannot find flights with such id", e);
+			}
+		}
+		return forward;
+	}
+
+	/**
+	 * Search flights by parameters(departure, arrival, departure date).
+	 * 
+	 * @param request HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String byParams(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Integer dep = Integer.valueOf(request.getParameter("dep_id"));
+		Integer arr = Integer.valueOf(request.getParameter("arr_id"));
+		if (dep.equals(arr)) {
+			LOG.warn("Departure and arrival cannot be the same");
+			throw new AppException(rb.getString("error.flight"));
+		}
+		Date date = null;
+		try {
+			date = Date.valueOf(request.getParameter("date"));
+		} catch (IllegalArgumentException e) {
+			LOG.error("flights not found", e);
+			throw new AppException("enter correct date, please.", e);
+		}
+		List<FlightBean> flights = null;
+
+		if (date != null) {
+			try {
+				flights = FlightBeanDAO.findFlightBeansByParams(dep, arr, date);
+				LOG.debug("found flights" + flights);
+				request.getSession().setAttribute("found_flights", flights);
+				String redirect = "controller?command=flights&option=search";
+				request.setAttribute("redirect", redirect);
+				forward = Path.PAGE_REDIRECT;
+			} catch (DBException e) {
+				forward = Path.PAGE_ERROR;
+				LOG.error("flight not found", e);
+				throw new AppException("Cannot find flights with such id", e);
+			}
+		}
+		return forward;
+	}
+
+}

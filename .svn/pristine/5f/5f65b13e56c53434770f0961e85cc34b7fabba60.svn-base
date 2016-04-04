@@ -1,0 +1,35 @@
+package ua.nure.kolesov.SummaryTask4.db.entity;
+
+/**
+ * Stores information of each crew in the DB (id, statusId, status). 
+ *
+ */
+public class Crew extends Entity {
+
+	private static final long serialVersionUID = -8651688329601992806L;
+
+	private int statusId;
+	private String status;
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public int getStatusId() {
+		return statusId;
+	}
+
+	public void setStatusId(int statusId) {
+		this.statusId = statusId;
+	}
+
+	@Override
+	public String toString() {
+		return "Crew [statusId=" + statusId + ", getId()=" + getId() + "]";
+	}
+
+}

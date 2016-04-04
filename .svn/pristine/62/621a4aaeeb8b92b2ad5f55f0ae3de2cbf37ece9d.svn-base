@@ -1,0 +1,64 @@
+package ua.nure.kolesov.SummaryTask4;
+
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+
+import ua.nure.kolesov.SummaryTask4.db.Airport;
+import ua.nure.kolesov.SummaryTask4.db.CrewStatus;
+import ua.nure.kolesov.SummaryTask4.db.FlightStatus;
+import ua.nure.kolesov.SummaryTask4.db.Position;
+import ua.nure.kolesov.SummaryTask4.db.RequestStatus;
+
+public class EnumTest {
+
+	@Test
+	public final void testAirport() {
+		for (Airport a : Airport.values()) {
+			int expected = 1;
+			int actual = a.getId();
+			assertEquals(expected, actual);
+			++expected;
+		}
+	}
+	
+	@Test
+	public final void testCrewStat() {
+		for (CrewStatus cs : CrewStatus.values()) {
+			int expected = 1;
+			int actual = cs.getId();
+			assertEquals(expected, actual);
+			++expected;
+		}
+	}
+	
+	@Test
+	public final void testFlightStat() {
+		for (FlightStatus fs : FlightStatus.values()) {
+			int expected = 1;
+			int actual = fs.getId();
+			assertEquals(expected, actual);
+			++expected;
+		}
+	}
+
+	@Test
+	public final void testPosition() {
+		for (Position p : Position.values()) {
+			int expected = 1;
+			int actual = p.getId();
+			assertEquals(expected, actual);
+			++expected;
+		}
+	}
+	
+	@Test
+	public final void testRequestStat() {
+		for (RequestStatus rs : RequestStatus.values()) {
+			int expected = 1;
+			int actual = rs.getId();
+			assertEquals(expected, actual);
+			++expected;
+		}
+	}
+}

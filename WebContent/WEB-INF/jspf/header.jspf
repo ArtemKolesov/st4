@@ -1,0 +1,48 @@
+<!-------------------------- HEADER ------------------------------>
+<%@ include file="/WEB-INF/jspf/directive/taglib.jspf"%>
+<%@ page pageEncoding="UTF-8"%>
+<div class="header">
+	<c:if test="${not empty user.name }">
+		<div class="link1">
+			<a href=controller?command=logout><fmt:message key="link.logout" /></a>
+		</div>
+		<div class="link">
+			<a href=controller?command=main><fmt:message key="link.main" /></a>
+		</div>
+		<div class="link">
+			<a href=controller?command=flights&sort=id><fmt:message
+					key="link.flights" /></a>
+		</div>
+
+		<div class="link">
+			<a href=controller?command=staff><fmt:message key="link.staff" /></a>
+		</div>
+
+		<div class="link">
+			<a href=controller?command=crews><fmt:message key="link.crews" /></a>
+		</div>
+
+		<div class="link">
+			<a href=controller?command=requests><fmt:message
+					key="link.requests" /></a>
+		</div>
+		<div class="locale">
+			<form action="controller" method="post">
+				<input type="hidden" name="command" value="locale" />
+				<table>
+					<tr>
+						<td><select name="localeToSet">
+								<c:forEach var="localeName" items="${locales}">
+									<option value="${localeName}">${localeName}</option>
+								</c:forEach>
+						</select></td>
+						<td><input type="submit"
+							value="<fmt:message key="locale.change"  />"></td>
+					</tr>
+				</table>
+			</form>
+		</div>
+	</c:if>
+</div>
+
+<!---------------------------------------------------------------->

@@ -1,0 +1,9 @@
+<Context crossContext="true">
+	<WatchedResource>WEB-INF/web.xml</WatchedResource>
+	<Resource name="jdbc/ST4DB" auth="Container" type="javax.sql.DataSource"
+		maxActive="100" maxIdle="30" maxWait="10000" username="admin"
+		password="admin" driverClassName="com.mysql.jdbc.Driver"
+		defaultAutoCommit="false" defaultTransactionIsolation="READ_COMMITTED"
+		url="jdbc:mysql://localhost:3306/st4" useUnicode="true"
+		characterEncoding="UTF-8" />
+</Context>

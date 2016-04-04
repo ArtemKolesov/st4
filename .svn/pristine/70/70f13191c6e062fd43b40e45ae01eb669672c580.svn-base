@@ -1,0 +1,202 @@
+package ua.nure.kolesov.SummaryTask4.web.command.option;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.Path;
+import ua.nure.kolesov.SummaryTask4.db.RequestStatus;
+import ua.nure.kolesov.SummaryTask4.db.dao.RequestDAO;
+import ua.nure.kolesov.SummaryTask4.db.entity.Request;
+import ua.nure.kolesov.SummaryTask4.exception.AppException;
+
+/**
+ * Stores options for requests.
+ *
+ */
+public class RequestOption {
+	private RequestOption() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(RequestOption.class);
+
+	/**
+	 * Find option by name.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @param option
+	 *            Option name
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	public static String optionFactory(HttpServletRequest request, String option)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		if (option == null) {
+			forward = showRequests(request);
+			LOG.info("show request");
+		} else if (option.equals("change_status")) {
+			forward = changeStatus(request);
+			LOG.info("change status");
+		} else if (option.equals("add")) {
+			forward = add(request);
+			LOG.info("add request");
+		}
+		return forward;
+	}
+
+	/**
+	 * Request comparator by id.
+	 *
+	 */
+	private static class CompareById implements Comparator<Request>,
+			Serializable {
+		private static final long serialVersionUID = -1573481565177573283L;
+
+		@Override
+		public int compare(Request o1, Request o2) {
+			return (int) (o1.getId() - o2.getId());
+		}
+	}
+
+	private static Comparator<Request> compateByPositionId = new CompareById();
+
+	/**
+	 * Set the list of requests and send in to the view.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String showRequests(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		Map<String, Integer> positions = new TreeMap<String, Integer>();
+		for (RequestStatus rs : RequestStatus.values()) {
+			positions.put(rs.name(), rs.getId());
+		}
+		request.setAttribute("positions", positions);
+		String forward = Path.PAGE_ERROR;
+		List<Request> requests = RequestDAO.findAll();
+		Collections.sort(requests, compateByPositionId);
+		request.setAttribute("requests", requests);
+		forward = Path.PAGE_REQUEST;
+		return forward;
+	}
+
+	/**
+	 * Set status for the current request (admin action).
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String changeStatus(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error("incorrect id", e);
+			throw new AppException("enter correct id value, please.", e);
+		}
+		Integer statusId = Integer.valueOf(request.getParameter("stat_id"));
+		RequestDAO.changeStatus(id, statusId);
+		String redirect = Path.COMMAND_REQUESTS;
+		request.setAttribute("redirect", redirect);
+		forward = Path.PAGE_REDIRECT;
+		LOG.info("Status changed");
+		return forward;
+	}
+
+	/**
+	 * Add a new request (controller action).
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String add(HttpServletRequest request) throws IOException,
+			ServletException, AppException {
+		String forward = null;
+		int pilots = 0;
+		int navigators = 0;
+		int operators = 0;
+		int hostess = 0;
+		long crewId = 0;
+		String tPilots = request.getParameter("pilots");
+		String tNavigators = request.getParameter("navigators");
+		String tOperators = request.getParameter("operators");
+		String tHostess = request.getParameter("hostess");
+		String tCrewId = request.getParameter("crew_id");
+		if (!tPilots.isEmpty()) {
+			try {
+				pilots = Integer.valueOf(tPilots);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect pilot number", e);
+				throw new AppException("enter correct pilot number, please.", e);
+			}
+		}
+		if (!tNavigators.isEmpty()) {
+			try {
+				navigators = Integer.valueOf(tNavigators);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect navigator number", e);
+				throw new AppException(
+						"enter correct navigator number, please.", e);
+			}
+		}
+		if (!tOperators.isEmpty()) {
+			try {
+				operators = Integer.valueOf(tOperators);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect operator number", e);
+				throw new AppException(
+						"enter correct operator number, please.", e);
+			}
+		}
+		if (!tHostess.isEmpty()) {
+			try {
+				hostess = Integer.valueOf(tHostess);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect hostess number", e);
+				throw new AppException("enter correct hostess number, please.",
+						e);
+			}
+		}
+		if (!tCrewId.isEmpty()) {
+			try {
+				crewId = Long.valueOf(tCrewId);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect crew id", e);
+				throw new AppException("enter correct crew id, please.", e);
+			}
+		}
+		RequestDAO.create(pilots, navigators, operators, hostess, crewId);
+		String redirect = Path.COMMAND_REQUESTS;
+		request.setAttribute("redirect", redirect);
+		forward = Path.PAGE_REDIRECT;
+		return forward;
+	}
+}

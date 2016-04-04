@@ -1,0 +1,67 @@
+link.flights=Flights
+login.login=Login
+login.password=Password
+login.submit=Login
+link.logout=Logout
+link.back=Back
+link.staff=Staff
+link.crews=Crews
+link.main=Main
+link.requests=Requests
+
+main.hello = Hello, 
+main.admin=(administrator)
+main.controller=(controller)
+
+flight.id=#
+flight.name=Name
+flight.departure=Departure
+flight.arrival=Arrival
+flight.date=Date
+flight.crew_id=Crew #
+flight.crew_status=Crew status
+flight.status=Flight status
+flight.search_by_id=Search by number: 
+flight.search_button=Search
+flight.search_my_params=Search(departure, arrival, date)
+flight.search_date=YYYY-MM-DD
+flight.no_found=Flights not found
+flight.options=Options
+flight.change_crew=Change crew
+flight.delete_flight=Delete flight
+flight.add_flight=Add flight
+flight.update_flight=Update flight
+
+staff.name=Name
+staff.surname=Surname
+staff.position=Position
+staff.birthdate=Birthdate
+staff.delete_staff=Delete worker
+staff.add_staff=Add worker
+staff.update_staff=Update staff
+request.pilot=pilots: 
+request.navigator=navigators: 
+request.operator=operators: 
+request.hostess=hostesses: 
+request.status=Status: 
+request.for_crew=for crew # 
+request.needs=required 
+request.number: Request # 
+request.status.confirm=CONFIRM
+request.status.reject=REJECT
+
+locale.change=Change
+
+crew.change_status=Change status
+crew.add_crew=Add crew
+crew.add=Add
+crew.delete_crew=Delete crew
+crew.delete=Delete
+crew.flight_number=Flight number
+
+request.add_request=Add request
+
+error.title=Error
+error.header=The following error occurred
+error.flight=Departure and arrival cannot be the same
+error.flight_not_found=No flights found

@@ -1,0 +1,266 @@
+package ua.nure.kolesov.SummaryTask4.db.dao;
+
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.db.DBManager;
+import ua.nure.kolesov.SummaryTask4.db.bean.StaffBean;
+import ua.nure.kolesov.SummaryTask4.exception.DBException;
+
+/**
+ * Stores CRUD methods for staff table in DB.
+ *
+ */
+public class StaffBeanDAO {
+	private StaffBeanDAO() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(StaffBeanDAO.class);
+
+	private static final String SQL_FIND_STAFF = "SELECT staff.id,first_name, last_name, position_id, positions.name, birthdate, crew_id FROM st4.staff, st4.positions where staff.position_id=positions.id";
+	private static final String SQL_DELETE_STAFF = "DELETE FROM `st4`.`staff` WHERE `id`=?";
+	private static final String SQL_CREATE_STAFF = "INSERT INTO `st4`.`staff` VALUES (?, ?, ?, ?, ?, ?)";
+	private static final String SQL_CHANGE_CREW = "UPDATE `st4`.`staff` SET `crew_id`=? WHERE `id`=?";
+	private static final String SQL_FIND_BY_ID = "SELECT staff.id,first_name, last_name, position_id, positions.name, birthdate, crew_id FROM st4.staff, st4.positions where staff.position_id=positions.id and staff.id=?";
+	private static final String SQL_UPDATE_STAFF = "UPDATE `st4`.`staff` SET `first_name`=?, `last_name`=?, `position_id`=?, `birthdate`=?, `crew_id`=? WHERE `id`=?";
+
+	/**
+	 * Extract worker from the DB.
+	 * 
+	 * @param rs
+	 *            ResultSet, which stores concrete SQL query
+	 * @return StaffBean from the DB
+	 * @throws SQLException
+	 */
+	private static StaffBean extractStaffBean(ResultSet rs) throws SQLException {
+		StaffBean sb = new StaffBean();
+		sb.setId(rs.getLong(1));
+		sb.setName(rs.getString(2));
+		sb.setSurname(rs.getString(3));
+		sb.setPositionId(rs.getInt(4));
+		sb.setPosition(rs.getString(5));
+		sb.setBirthdate(rs.getDate(6));
+		sb.setCrewId(rs.getInt(7));
+		return sb;
+	}
+
+	/**
+	 * Find all workers from the DB.
+	 * 
+	 * @return list of StaffBeans
+	 * @throws DBException
+	 */
+	public static List<StaffBean> findStaffBeans() throws DBException {
+		List<StaffBean> staffBeans = new ArrayList<StaffBean>();
+		Statement st = null;
+		ResultSet rs = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			st = cn.createStatement();
+			rs = st.executeQuery(SQL_FIND_STAFF);
+			while (rs.next()) {
+				staffBeans.add(extractStaffBean(rs));
+			}
+			cn.commit();
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Can not obtain staff bean list: " + e);
+			throw new DBException("Can not obtain staff bean list: ", e);
+		} finally {
+			manager.close(rs);
+			manager.close(st);
+			manager.close(cn);
+		}
+		return staffBeans;
+	}
+
+	/**
+	 * Delete current worker from the DB.
+	 * 
+	 * @param id
+	 *            Id of worker to delete
+	 * @throws DBException
+	 */
+	public static void delete(long id) throws DBException {
+		LOG.info("delete started");
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_DELETE_STAFF);
+			ps.setLong(1, id);
+			ps.executeUpdate();
+			cn.commit();
+			LOG.info("staff deleted");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Can not delete staff", e);
+			throw new DBException("Can not delete staff", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+	}
+
+	/**
+	 * Change crew for current worker.
+	 * 
+	 * @param id
+	 *            Id of worker to change
+	 * @param crewId
+	 *            Crew id to set
+	 * @throws DBException
+	 */
+	public static void changeCrew(long id, int crewId) throws DBException {
+		LOG.info("change crew started");
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_CHANGE_CREW);
+			ps.setInt(1, crewId);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+			cn.commit();
+			LOG.info("update finished");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Can not change crew", e);
+			throw new DBException("Can not change crew", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+	}
+
+	/**
+	 * Put new worker into DB.
+	 * 
+	 * @param id
+	 *            Id of the new worker
+	 * @param name
+	 *            Name of the new worker
+	 * @param surname
+	 *            Surname of the new worker
+	 * @param positionId
+	 *            New worker's position id
+	 * @param birthdate
+	 *            New worker's date of birth
+	 * @param crewId
+	 *            Id of the crew, new worker belong to(can be empty - default
+	 *            value = 0)
+	 * @throws DBException
+	 */
+	public static void create(long id, String name, String surname,
+			int positionId, Date birthdate, int crewId) throws DBException {
+		LOG.info("create started");
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_CREATE_STAFF);
+			ps.setLong(1, id);
+			ps.setString(2, name);
+			ps.setString(3, surname);
+			ps.setInt(4, positionId);
+			ps.setDate(5, birthdate);
+			ps.setInt(6, crewId);
+			ps.executeUpdate();
+			cn.commit();
+			LOG.info("Staff created");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Can not create staff", e);
+			throw new DBException("Can not create staf", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+	}
+
+	/**
+	 * Find worker from DB by id.
+	 * 
+	 * @param id
+	 *            Id of worker to find
+	 * @return Worker with current id
+	 * @throws DBException
+	 */
+	public static StaffBean findById(long id) throws DBException {
+		LOG.info("find by id started");
+		StaffBean staff = null;
+		PreparedStatement ps = null;
+		Connection cn = null;
+		ResultSet rs = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_FIND_BY_ID);
+			ps.setLong(1, id);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				staff = extractStaffBean(rs);
+			}
+			cn.commit();
+			LOG.debug("find by id ended: " + staff);
+		} catch (SQLException ex) {
+			manager.rollback(cn);
+			LOG.error("Can not obtain staff by id", ex);
+			throw new DBException("Can not obtain staff by id", ex);
+		} finally {
+			manager.close(rs);
+			manager.close(ps);
+			manager.close(cn);
+		}
+		return staff;
+	}
+
+	/**
+	 * Update worker.
+	 * 
+	 * @param staff
+	 *            Worker to update
+	 * @throws DBException
+	 */
+	public static void update(StaffBean staff) throws DBException {
+		LOG.info("update started");
+		PreparedStatement ps = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_UPDATE_STAFF);
+			ps.setString(1, staff.getName());
+			ps.setString(2, staff.getSurname());
+			ps.setInt(3, staff.getPositionId());
+			ps.setDate(4, staff.getBirthdate());
+			ps.setInt(5, staff.getCrewId());
+			ps.setLong(6, staff.getId());
+			ps.executeUpdate();
+			cn.commit();
+			LOG.info("update finished");
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Can not update staff", e);
+			throw new DBException("Can not update staff", e);
+		} finally {
+			manager.close(ps);
+			manager.close(cn);
+		}
+	}
+
+}

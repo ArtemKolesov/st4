@@ -1,0 +1,12 @@
+package ua.nure.kolesov.SummaryTask4;
+
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
+
+@RunWith(Suite.class)
+@SuiteClasses({ControllerTest.class, CrewTest.class, UserTest.class, RequestTest.class, FlightTest.class,
+	StaffTest.class, FlightBeanTest.class, EnumTest.class})
+public class AllTests {
+
+}

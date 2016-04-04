@@ -1,0 +1,14 @@
+ua.nure.kolesov.SummaryTask4
+ua.nure.kolesov.SummaryTask4.db
+ua.nure.kolesov.SummaryTask4.db.bean
+ua.nure.kolesov.SummaryTask4.db.dao
+ua.nure.kolesov.SummaryTask4.db.entity
+ua.nure.kolesov.SummaryTask4.exception
+ua.nure.kolesov.SummaryTask4.web
+ua.nure.kolesov.SummaryTask4.web.command
+ua.nure.kolesov.SummaryTask4.web.command.option
+ua.nure.kolesov.SummaryTask4.web.command.option.search
+ua.nure.kolesov.SummaryTask4.web.command.option.sort
+ua.nure.kolesov.SummaryTask4.web.filter
+ua.nure.kolesov.SummaryTask4.web.listener
+ua.nure.kolesov.SummaryTask4.web.tag

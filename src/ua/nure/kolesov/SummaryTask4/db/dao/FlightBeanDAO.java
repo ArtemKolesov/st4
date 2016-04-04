@@ -1,0 +1,176 @@
+package ua.nure.kolesov.SummaryTask4.db.dao;
+
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.db.DBManager;
+import ua.nure.kolesov.SummaryTask4.db.bean.FlightBean;
+import ua.nure.kolesov.SummaryTask4.exception.DBException;
+import ua.nure.kolesov.SummaryTask4.exception.Message;
+
+/**
+ * Stores CRUD methods for FlightBean.
+ *
+ */
+public final class FlightBeanDAO {
+	private FlightBeanDAO() {
+	}
+
+	private static final Logger LOG = Logger.getLogger(FlightBeanDAO.class);
+
+	private static final String SQL_FIND_FLIGHT_BEANS = "select flights.id, flights.name, departure.name, arrival.name, date, crew.id, crew_status.name, flight_status.name "
+			+ "from flights, departure, arrival, crew_status, flight_status, crew "
+			+ "where flights.departure=departure.id and flights.arrival=arrival.id and "
+			+ "flights.status_id=flight_status.id and crew_id=crew.id and crew.crew_status_id=crew_status.id ";
+
+	private static final String SQL_FIND_FLIGHT_BEAN_BY_ID = "select flights.id, flights.name, departure.name, arrival.name, date, crew.id, crew_status.name, flight_status.name "
+			+ "from flights, departure, arrival, crew_status, flight_status, crew "
+			+ "where flights.departure=departure.id and flights.arrival=arrival.id and "
+			+ "flights.status_id=flight_status.id and crew_id=crew.id and crew.crew_status_id=crew_status.id and flights.id=?";
+
+	private static final String SQL_FIND_FLIGHT_BEANS_BY_PARAMS = "select flights.id, flights.name, departure.name, arrival.name, date, crew.id, crew_status.name, flight_status.name "
+			+ "from flights, departure, arrival, crew_status, flight_status, crew "
+			+ "where flights.departure=departure.id and flights.arrival=arrival.id and "
+			+ "flights.status_id=flight_status.id and crew_id=crew.id and crew.crew_status_id=crew_status.id "
+			+ "and departure=? and arrival=? and date=?";
+
+	/**
+	 * Extract a FlightBean from the DB.
+	 * 
+	 * @param rs
+	 *            ResultSet from another method
+	 * @return fb Extracted FlightBean
+	 * @throws SQLException
+	 */
+	private static FlightBean extractFlightBean(ResultSet rs)
+			throws SQLException {
+		FlightBean fb = new FlightBean();
+		fb.setId(rs.getLong(1));
+		fb.setName(rs.getString(2));
+		fb.setDeparture(rs.getString(3));
+		fb.setArrival(rs.getString(4));
+		fb.setDate(rs.getDate(5));
+		fb.setCrewId(rs.getLong(6));
+		fb.setCrewStatus(rs.getString(7));
+		fb.setFlightStatus(rs.getString(8));
+		return fb;
+	}
+
+	/**
+	 * Find all Flights in the DB.
+	 * 
+	 * @return flightBeans List of the Flight Beans from the DB
+	 * @throws DBException
+	 */
+	public static List<FlightBean> findFlightBeans() throws DBException {
+		List<FlightBean> flightBeans = new ArrayList<FlightBean>();
+		Statement st = null;
+		ResultSet rs = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			st = cn.createStatement();
+			rs = st.executeQuery(SQL_FIND_FLIGHT_BEANS);
+			while (rs.next()) {
+				flightBeans.add(extractFlightBean(rs));
+			}
+			cn.commit();
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error(Message.ERR_FLIGHT_LIST + e);
+			throw new DBException(Message.ERR_FLIGHT_LIST, e);
+		} finally {
+			manager.close(rs);
+			manager.close(st);
+			manager.close(cn);
+		}
+		return flightBeans;
+	}
+
+	/**
+	 * Find FlightBean from the DB by id.
+	 * 
+	 * @param id
+	 *            Id to find by
+	 * @return flightBean FlightBean that was found
+	 * @throws DBException
+	 */
+	public static FlightBean findFlightBeanById(long id) throws DBException {
+		FlightBean flightBean = new FlightBean();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_FIND_FLIGHT_BEAN_BY_ID);
+			ps.setLong(1, id);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				flightBean = extractFlightBean(rs);
+			}
+			cn.commit();
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error("Cannot obtain flight bean by id = " + id + ": " + e);
+			throw new DBException("Cannot obtain flight bean by id = " + id, e);
+		} finally {
+			manager.close(rs);
+			manager.close(ps);
+			manager.close(cn);
+		}
+		return flightBean;
+	}
+
+	/**
+	 * Find FlightBean from the DB by parameters (departure airport, arrival
+	 * airport, date of the departure).
+	 * 
+	 * @param departure
+	 *            Id of the airport
+	 * @param arrival
+	 *            Id of the airport
+	 * @param date
+	 *            Departure date
+	 * @return flightBeans List of the FlightBean, that were found
+	 * @throws DBException
+	 */
+	public static List<FlightBean> findFlightBeansByParams(int departure,
+			int arrival, Date date) throws DBException {
+		List<FlightBean> flightBeans = new ArrayList<FlightBean>();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		Connection cn = null;
+		DBManager manager = DBManager.getInstance();
+		try {
+			cn = manager.getConnection();
+			ps = cn.prepareStatement(SQL_FIND_FLIGHT_BEANS_BY_PARAMS);
+			ps.setInt(1, departure);
+			ps.setInt(2, arrival);
+			ps.setDate(3, date);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				flightBeans.add(extractFlightBean(rs));
+			}
+			cn.commit();
+		} catch (SQLException e) {
+			manager.rollback(cn);
+			LOG.error(Message.ERR_FLIGHT_LIST + e);
+			throw new DBException(Message.ERR_FLIGHT_LIST, e);
+		} finally {
+			manager.close(rs);
+			manager.close(ps);
+			manager.close(cn);
+		}
+		return flightBeans;
+	}
+}

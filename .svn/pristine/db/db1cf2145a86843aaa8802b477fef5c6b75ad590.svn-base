@@ -1,0 +1,274 @@
+package ua.nure.kolesov.SummaryTask4.web.command.option;
+
+import java.io.IOException;
+import java.sql.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.log4j.Logger;
+
+import ua.nure.kolesov.SummaryTask4.Path;
+import ua.nure.kolesov.SummaryTask4.db.Position;
+import ua.nure.kolesov.SummaryTask4.db.bean.StaffBean;
+import ua.nure.kolesov.SummaryTask4.db.dao.StaffBeanDAO;
+import ua.nure.kolesov.SummaryTask4.exception.AppException;
+import ua.nure.kolesov.SummaryTask4.exception.Message;
+import ua.nure.kolesov.SummaryTask4.web.command.option.sort.SortStaff;
+
+/**
+ * Stores options for staff.
+ *
+ */
+public class StaffOption {
+	private static final Logger LOG = Logger.getLogger(StaffOption.class);
+
+	/**
+	 * Find option by name.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @param option
+	 *            Option name
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	public static String optionFactory(HttpServletRequest request, String option)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		if (option == null) {
+			forward = showStaff(request);
+			LOG.info("show staff");
+		} else if (option.equals("delete")) {
+			forward = delete(request);
+			LOG.info("delete worker");
+		} else if (option.equals("change_crew")) {
+			forward = changeCrew(request);
+			LOG.info("change crew for worker");
+		} else if (option.equals("add")) {
+			forward = add(request);
+			LOG.info("add worker");
+		} else if (option.equals("update")) {
+			forward = update(request);
+			LOG.info("update worker");
+		}
+		return forward;
+	}
+
+	/**
+	 * Find list of staff and send it to the view.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String showStaff(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		Map<String, Integer> positions = new TreeMap<String, Integer>();
+		for (Position p : Position.values()) {
+			positions.put(p.name(), p.getId());
+		}
+		request.setAttribute("positions", positions);
+		String forward = Path.PAGE_ERROR;
+		List<StaffBean> staff = StaffBeanDAO.findStaffBeans();
+		String sort = request.getParameter("sort");
+		SortStaff.sort(staff, sort);
+		request.setAttribute("staff", staff);
+		forward = Path.PAGE_STAFF;
+		return forward;
+	}
+
+	/**
+	 * Delete a worker.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String delete(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		StaffBeanDAO.delete(id);
+		String redirect = Path.COMMAND_STAFF;
+		request.setAttribute(Message.REDIRECT, redirect);
+		forward = Path.PAGE_REDIRECT;
+		return forward;
+	}
+
+	/**
+	 * Set the crew that the worker belongs to.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String changeCrew(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		Integer crewId = null;
+		try {
+			crewId = Integer.valueOf(request.getParameter("crew_id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		StaffBeanDAO.changeCrew(id, crewId);
+		String redirect = Path.COMMAND_STAFF;
+		request.setAttribute(Message.REDIRECT, redirect);
+		forward = Path.PAGE_REDIRECT;
+		LOG.info("crew changed");
+		return forward;
+	}
+
+	/**
+	 * Update the worker's information.
+	 * 
+	 * @param request
+	 *            HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String update(HttpServletRequest request)
+			throws IOException, ServletException, AppException {
+		String forward = null;
+		StaffBean staff = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		staff = StaffBeanDAO.findById(id);
+		String name = request.getParameter("name");
+		if (!name.isEmpty()) {
+			staff.setName(name);
+		}
+		String surname = request.getParameter("surname");
+		if (!surname.isEmpty()) {
+			staff.setSurname(surname);
+		}
+		Integer positionId = Integer.valueOf(request
+				.getParameter("position_id"));
+		staff.setPositionId(positionId);
+		String bDate = request.getParameter("birthdate");
+		Date birthdate = null;
+		LOG.debug(bDate.isEmpty() + "b-date: " + bDate);
+		if (!bDate.isEmpty()) {
+			try {
+				birthdate = Date.valueOf(bDate);
+				staff.setBirthdate(birthdate);
+			} catch (IllegalArgumentException e) {
+				LOG.error("incorrect date found", e);
+				throw new AppException("enter correct date, please.", e);
+			}
+		}
+
+		String cid = request.getParameter("crew_id");
+		Integer crewId = null;
+		if (!cid.isEmpty()) {
+			try {
+				crewId = Integer.valueOf(cid);
+				staff.setCrewId(crewId);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect crew_id found", e);
+				throw new AppException(
+						"incorrect crew_id found, enter correct value, please.",
+						e);
+			}
+		}
+		StaffBeanDAO.update(staff);
+		String redirect = Path.COMMAND_STAFF;
+		request.setAttribute(Message.REDIRECT, redirect);
+		forward = Path.PAGE_REDIRECT;
+		return forward;
+	}
+
+	/**
+	 * Add a new worker.
+	 * 
+	 * @param request HttpServletRequest
+	 * @return path to the command
+	 * @throws IOException
+	 * @throws ServletException
+	 * @throws AppException
+	 */
+	private static String add(HttpServletRequest request) throws IOException,
+			ServletException, AppException {
+		String forward = null;
+		Long id = null;
+		try {
+			id = Long.valueOf(request.getParameter("id"));
+		} catch (NumberFormatException e) {
+			LOG.error(Message.ERR_INCORRECT_ID, e);
+			throw new AppException(Message.ERR_INCORRECT_ID, e);
+		}
+		String name = request.getParameter("name");
+		if (name == null || name.isEmpty()) {
+			throw new AppException("Name can not be empty");
+		}
+		String surname = request.getParameter("surname");
+		if (surname == null || surname.isEmpty()) {
+			throw new AppException("Surname can not be empty");
+		}
+		Integer positionId = Integer.valueOf(request
+				.getParameter("position_id"));
+		Date birthdate = null;
+		try {
+			birthdate = Date.valueOf(request.getParameter("birthdate"));
+		} catch (IllegalArgumentException e) {
+			LOG.error("incorrect date found", e);
+			throw new AppException("enter correct date, please.", e);
+		}
+		String cid = request.getParameter("crew_id");
+		LOG.debug(cid.isEmpty());
+		Integer crewId = null;
+		if (!cid.isEmpty()) {
+			try {
+				crewId = Integer.valueOf(cid);
+			} catch (NumberFormatException e) {
+				LOG.error("incorrect crew_id found", e);
+				throw new AppException(
+						"incorrect crew_id found, enter correct value, please.",
+						e);
+			}
+		} else {
+			crewId = 0;
+		}
+		StaffBeanDAO.create(id, name, surname, positionId, birthdate, crewId);
+		String redirect = Path.COMMAND_STAFF;
+		request.setAttribute(Message.REDIRECT, redirect);
+		forward = Path.PAGE_REDIRECT;
+		return forward;
+	}
+}
